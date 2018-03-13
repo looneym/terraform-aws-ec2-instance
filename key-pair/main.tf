@@ -1,5 +1,5 @@
-locals {
-  public_key_filename  = "${var.ssh_public_key_location}${var.name}${var.public_key_extension}"
+locals {                    
+  public_key_filename  = "pathexpand${var.ssh_public_key_location})${var.name}${var.public_key_extension}"
   private_key_filename = "${var.ssh_public_key_location}${var.name}${var.private_key_extension}"
 }
 
