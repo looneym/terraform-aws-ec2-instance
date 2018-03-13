@@ -17,11 +17,9 @@ provider "aws" {
 ###############################################################
 
 module "key_pair" {
-  source                = "git::https://github.com/cloudposse/terraform-aws-key-pair.git?ref=master"
-  namespace             = "${var.key_pair["namespace"]}"
-  stage                 = "${var.key_pair["stage"]}"
+  source                = "key-pair"
   name                  = "${var.key_pair["name"]}"
-  ssh_public_key_path   = "${var.key_pair["ssh_public_key_path"]}"
+  ssh_public_key_location   = "${var.key_pair["ssh_public_key_location"]}"
   generate_ssh_key      = "${var.key_pair["generate_ssh_key"]}"
   private_key_extension = ".pem"
   public_key_extension  = ".pub"
@@ -159,7 +157,21 @@ variable "key_pair" {
     "name" = "easy-ec2"
     "stage" = "dev"
     "namespace" = "easy-ec2"
-    "ssh_public_key_path" = "~/.ssh"
+    "ssh_public_key_location" = "/Users/looneym/.ssh/"
     "generate_ssh_key" = "true"
   }
+}
+
+###############################################################
+#
+#  OUTPUTS
+#
+###############################################################
+
+output "ip" {
+  value = "${aws_instance.web01.public_ip}"
+}
+
+output "key_file_with_path" {
+  value = "${module.key_pair.key_file_with_path}"
 }

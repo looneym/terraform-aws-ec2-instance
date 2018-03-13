@@ -1,0 +1,6 @@
+instance_ip=$(terraform output ip)
+key_file_with_path=$(terraform output key_file_with_path)
+user="ubuntu"
+
+echo connecting as $user@$instance_ip with key: $key_file_with_path 
+ssh  -i $key_file_with_path $user@$instance_ip
