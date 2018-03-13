@@ -5,9 +5,26 @@
 ###############################################################
 
 provider "aws" {
-  region                  = "us-east-1"
-  shared_credentials_file = "/Users/looneym/.aws/credentials"
-  profile                 = "default"
+  region                  = "${var.region}"
+  shared_credentials_file = "${var.shared_credentials_file}"
+  profile                 = "${var.profile}"
+}
+
+###############################################################
+#
+#  KEY PAIR
+#
+###############################################################
+
+module "key_pair" {
+  source                = "git::https://github.com/cloudposse/terraform-aws-key-pair.git?ref=master"
+  namespace             = "${var.key_pair["namespace"]}"
+  stage                 = "${var.key_pair["stage"]}"
+  name                  = "${var.key_pair["name"]}"
+  ssh_public_key_path   = "${var.key_pair["ssh_public_key_path"]}"
+  generate_ssh_key      = "${var.key_pair["generate_ssh_key"]}"
+  private_key_extension = ".pem"
+  public_key_extension  = ".pub"
 }
 
 ###############################################################
@@ -17,14 +34,12 @@ provider "aws" {
 ###############################################################
 
 resource "aws_instance" "web01" {
-    ami = "ami-408c7f28"
-    instance_type = "t1.micro"
-    subnet_id = "${aws_subnet.web_subnet.id}"
-    vpc_security_group_ids = ["${aws_security_group.web_server.id}","${aws_security_group.allow_ssh.id}"]
-    key_name = "sobotka"
-    tags {
-        Name = "web01"
-    }
+    ami = "${var.ami}"
+    instance_type = "${var.instance_type}"
+    subnet_id = "${aws_subnet.easy-ec2-subnet.id}"
+    vpc_security_group_ids = ["${aws_security_group.easy-ec2-web_server.id}","${aws_security_group.easy-ec2-allow_ssh.id}"]
+    key_name = "${var.key_pair["name"]}"
+    depends_on = ["module.key_pair"]
 }
 
 
@@ -34,30 +49,26 @@ resource "aws_instance" "web01" {
 #
 ###############################################################
 
-resource "aws_vpc" "myapp" {
+resource "aws_vpc" "easy-ec2-vpc" {
   cidr_block = "10.100.0.0/16"   
 }
 
-resource "aws_route_table" "r" {
-  vpc_id = "${aws_vpc.myapp.id}"
+resource "aws_route_table" "easy-ec2-rtb" {
+  vpc_id = "${aws_vpc.easy-ec2-vpc.id}"
 
   route {
     cidr_block = "0.0.0.0/0"
-    gateway_id = "${aws_internet_gateway.gw.id}"
+    gateway_id = "${aws_internet_gateway.easy-ec2-gw.id}"
   }
 }
 
 resource "aws_main_route_table_association" "a" {
-  vpc_id = "${aws_vpc.myapp.id}"
-  route_table_id = "${aws_route_table.r.id}"
+  vpc_id = "${aws_vpc.easy-ec2-vpc.id}"
+  route_table_id = "${aws_route_table.easy-ec2-rtb.id}"
 }
 
-resource "aws_internet_gateway" "gw" {
-    vpc_id = "${aws_vpc.myapp.id}"
-
-    tags {
-        Name = "myapp gw"
-    }
+resource "aws_internet_gateway" "easy-ec2-gw" {
+    vpc_id = "${aws_vpc.easy-ec2-vpc.id}"
 }
 
 ###############################################################
@@ -66,10 +77,10 @@ resource "aws_internet_gateway" "gw" {
 #
 ###############################################################
 
-resource "aws_security_group" "allow_ssh" {
+resource "aws_security_group" "easy-ec2-allow_ssh" {
   name = "allow_all"
   description = "Allow inbound SSH traffic from my IP"
-  vpc_id = "${aws_vpc.myapp.id}"
+  vpc_id = "${aws_vpc.easy-ec2-vpc.id}"
 
   ingress {
       from_port = 22
@@ -77,16 +88,12 @@ resource "aws_security_group" "allow_ssh" {
       protocol = "tcp"
       cidr_blocks = ["0.0.0.0/0"]
   }
-
-  tags {
-    Name = "Allow SSH"
-  }
 }
 
-resource "aws_security_group" "web_server" {
+resource "aws_security_group" "easy-ec2-web_server" {
   name = "web server"
   description = "Allow HTTP and HTTPS traffic in, browser access out."
-  vpc_id = "${aws_vpc.myapp.id}"
+  vpc_id = "${aws_vpc.easy-ec2-vpc.id}"
 
   ingress {
       from_port = 80
@@ -103,21 +110,56 @@ resource "aws_security_group" "web_server" {
     }
 }
 
-
 ###############################################################
 #
 #  SUBNETS
 #
 ###############################################################
 
-resource "aws_subnet" "web_subnet" {
-  vpc_id                  = "${aws_vpc.myapp.id}"
-  availability_zone = "us-east-1b"
+resource "aws_subnet" "easy-ec2-subnet" {
+  vpc_id                  = "${aws_vpc.easy-ec2-vpc.id}"
+  availability_zone = "${var.availability_zone}"
   cidr_block              = "10.100.2.0/24"
   map_public_ip_on_launch = true
-
-  tags {
-    Name = "tf_test_subnet"
-  }
 }
 
+
+###############################################################
+#
+#  VARIABLES
+#
+###############################################################
+
+
+variable "profile" {}
+
+variable "shared_credentials_file" {
+  default = "~/.aws/credentials"
+}
+
+variable "region" {
+  default = "us-east-1"
+}
+
+variable "availability_zone" {
+  default = "us-east-1b"
+}
+
+variable "ami" {
+  default = "ami-408c7f28"
+}
+
+variable "instance_type" {
+  default = "t1.micro"
+}
+
+variable "key_pair" {
+  type    = "map"
+  default = {
+    "name" = "easy-ec2"
+    "stage" = "dev"
+    "namespace" = "easy-ec2"
+    "ssh_public_key_path" = "~/.ssh"
+    "generate_ssh_key" = "true"
+  }
+}
