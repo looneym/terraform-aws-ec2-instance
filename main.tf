@@ -157,8 +157,7 @@ variable "key_pair" {
     "name" = "easy-ec2"
     "stage" = "dev"
     "namespace" = "easy-ec2"
-    # "ssh_public_key_location" = "/Users/looneym/.ssh/"
-    "ssh_public_key_location" = "~/.ssh/"
+    "ssh_public_key_location" = "/Users/looneym/.ssh/"
     "generate_ssh_key" = "true"
   }
 }
