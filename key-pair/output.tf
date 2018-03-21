@@ -9,3 +9,4 @@ output "public_key" {
 output "key_file_with_path" {
   value = "${local.private_key_filename}"
 }
+

@@ -15,7 +15,9 @@ module "key_pair" {
 
 module "ec2" {
   source = "ec2"
-  key_name = "${var.key_pair["name"]}"
+  subnet_id = "${module.network.subnet_id}"
+  vpc_security_group_ids = ["${module.network.sg_ssh_id}","${module.network.sg_web_id}"]
+  key_name = "${module.key_pair.key_name}"
 }
 
 module "network" {
